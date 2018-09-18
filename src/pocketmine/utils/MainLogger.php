@@ -172,8 +172,9 @@ class MainLogger extends \AttachableThreadedLogger{
 	/**
 	 * @param \Throwable $e
 	 * @param array|null $trace
+	 * @param bool       $induced
 	 */
-	public function logException(\Throwable $e, $trace = null){
+	public function logException(\Throwable $e, $trace = null, bool $induced = false){
 		if($trace === null){
 			$trace = $e->getTrace();
 		}
@@ -209,7 +210,11 @@ class MainLogger extends \AttachableThreadedLogger{
 		$errstr = preg_replace('/\s+/', ' ', trim($errstr));
 		$errfile = Utils::cleanPath($errfile);
 
-		$message = get_class($e) . ": \"$errstr\" ($errno) in \"$errfile\" at line $errline";
+		$message = "";
+		if($induced){
+			$message .= "Caused by: ";
+		}
+		$message .= get_class($e) . ": \"$errstr\" ($errno) in \"$errfile\" at line $errline";
 		$stack = Utils::getTrace(0, $trace);
 
 		$this->synchronized(function() use ($type, $message, $stack) : void{
@@ -218,6 +223,10 @@ class MainLogger extends \AttachableThreadedLogger{
 				$this->debug($line, true);
 			}
 		});
+
+		if($e->getPrevious() !== null){
+			$this->logException($e->getPrevious(), null, true);
+		}
 
 		$this->syncFlushBuffer();
 	}
