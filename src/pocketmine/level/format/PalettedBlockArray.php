@@ -30,7 +30,9 @@ die("This is a stub file for code completion purposes");
  */
 class PalettedBlockArray{
 
-	public function __construct(int $bitsPerBlock = 1, string $wordArray = "", array $palette = []){}
+	public function __construct(int $bitsPerBlock = null){}
+
+	public static function fromData(int $bitsPerBlock, string $wordArray, array $palette) : PalettedBlockArray{}
 
 	public function getWordArray() : string{}
 
@@ -42,7 +44,11 @@ class PalettedBlockArray{
 
 	public function get(int $x, int $y, int $z) : int{}
 
-	public function set(int $x, int $y, int $z, int $val) : void{}
+	public function set(int $x, int $y, int $z, int $val){}
 
-	public function collectGarbage(bool $force = false) : void{}
+	public function replace(int $offset, int $val){}
+
+	public function replaceAll(int $oldVal, int $newVal){}
+
+	public function collectGarbage(bool $force = null){}
 }

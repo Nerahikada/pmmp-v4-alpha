@@ -600,6 +600,10 @@ class BlockFactory{
 		return self::$staticRuntimeIdMap[($id << 4) | $meta] ?? self::$staticRuntimeIdMap[$id << 4] ?? self::$staticRuntimeIdMap[BlockIds::INFO_UPDATE << 4];
 	}
 
+	public static function legacyFullIdToRuntime(int $id) : int{
+		return self::$staticRuntimeIdMap[$id] ?? self::$staticRuntimeIdMap[$id & ~0xf] ?? self::$staticRuntimeIdMap[BlockIds::INFO_UPDATE << 4];
+	}
+
 	/**
 	 * @internal
 	 *
