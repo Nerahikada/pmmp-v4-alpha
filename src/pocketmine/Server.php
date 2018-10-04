@@ -1035,13 +1035,17 @@ class Server{
 
 		$path = $this->getDataPath() . "worlds/" . $name . "/";
 
-		$providerClass = LevelProviderManager::getProvider($path);
-
-		if($providerClass === null){
-			$this->logger->error($this->getLanguage()->translateString("pocketmine.level.loadError", [$name, "Cannot identify format of world"]));
-
+		$providers = LevelProviderManager::getMatchingProviders($path);
+		if(count($providers) !== 1){
+			$this->logger->error($this->language->translateString("pocketmine.level.loadError", [
+				$name,
+				empty($providers) ?
+					$this->language->translateString("pocketmine.level.unknownFormat") :
+					$this->language->translateString("pocketmine.level.ambiguousFormat", [implode(", ", array_keys($providers))])
+			]));
 			return false;
 		}
+		$providerClass = array_shift($providers);
 
 		/** @see LevelProvider::__construct() */
 		$level = new Level($this, $name, new $providerClass($path));
@@ -1080,12 +1084,7 @@ class Server{
 			$generator = GeneratorManager::getGenerator($this->getLevelType());
 		}
 
-		if(($providerClass = LevelProviderManager::getProviderByName($this->getProperty("level-settings.default-format", "pmanvil"))) === null){
-			$providerClass = LevelProviderManager::getProviderByName("pmanvil");
-			if($providerClass === null){
-				throw new \InvalidStateException("Default level provider has not been registered");
-			}
-		}
+		$providerClass = LevelProviderManager::getDefault();
 
 		$path = $this->getDataPath() . "worlds/" . $name . "/";
 		/** @var LevelProvider $providerClass */
@@ -1677,6 +1676,12 @@ class Server{
 			$this->network->registerInterface(new RakLibInterface($this));
 
 			LevelProviderManager::init();
+			if(($format = LevelProviderManager::getProviderByName($formatName = (string) $this->getProperty("level-settings.default-format"))) !== null){
+				LevelProviderManager::setDefault($format);
+			}elseif($formatName !== ""){
+				$this->logger->warning($this->language->translateString("pocketmine.level.badDefaultFormat", [$formatName]));
+			}
+
 			if(extension_loaded("leveldb")){
 				$this->logger->debug($this->getLanguage()->translateString("pocketmine.debug.enable"));
 			}
