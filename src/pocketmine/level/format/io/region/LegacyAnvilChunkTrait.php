@@ -55,11 +55,11 @@ trait LegacyAnvilChunkTrait{
 		$nbt->setLong("LastUpdate", 0); //TODO
 		$nbt->setLong("InhabitedTime", 0); //TODO
 		$nbt->setByte("TerrainPopulated", $chunk->isPopulated() ? 1 : 0);
-		$nbt->setByte("LightPopulated", $chunk->isLightPopulated() ? 1 : 0);
+		$nbt->setByte("LightPopulated", 0); //Not saving light information
 
 		$subChunks = [];
 		foreach($chunk->getSubChunks() as $y => $subChunk){
-			if($subChunk->isEmpty()){
+			if($subChunk->isEmpty(false)){ //ignore light information
 				continue;
 			}
 
@@ -127,7 +127,6 @@ trait LegacyAnvilChunkTrait{
 			$biomeIds,
 			$chunk->getIntArray("HeightMap", [])
 		);
-		$result->setLightPopulated($chunk->getByte("LightPopulated", 0) !== 0);
 		$result->setPopulated($chunk->getByte("TerrainPopulated", 0) !== 0);
 		$result->setGenerated();
 		return $result;

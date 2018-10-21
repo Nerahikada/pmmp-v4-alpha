@@ -35,17 +35,16 @@ class Anvil extends RegionLevelProvider{
 		return new CompoundTag("", [
 			new ByteArrayTag("Blocks", ChunkUtils::reorderByteArray($subChunk->getBlockIdArray())), //Generic in-memory chunks are currently always XZY
 			new ByteArrayTag("Data", ChunkUtils::reorderNibbleArray($subChunk->getBlockDataArray())),
-			new ByteArrayTag("SkyLight", ChunkUtils::reorderNibbleArray($subChunk->getBlockSkyLightArray(), "\xff")),
-			new ByteArrayTag("BlockLight", ChunkUtils::reorderNibbleArray($subChunk->getBlockLightArray()))
+			new ByteArrayTag("SkyLight", $dummyLight = str_repeat("\x00", 2048)),
+			new ByteArrayTag("BlockLight", $dummyLight)
 		]);
 	}
 
 	protected function deserializeSubChunk(CompoundTag $subChunk) : SubChunk{
 		return new SubChunk(
 			ChunkUtils::reorderByteArray($subChunk->getByteArray("Blocks")),
-			ChunkUtils::reorderNibbleArray($subChunk->getByteArray("Data")),
-			ChunkUtils::reorderNibbleArray($subChunk->getByteArray("SkyLight"), "\xff"),
-			ChunkUtils::reorderNibbleArray($subChunk->getByteArray("BlockLight"))
+			ChunkUtils::reorderNibbleArray($subChunk->getByteArray("Data"))
+			//ignore lighting information
 		);
 	}
 

@@ -38,17 +38,16 @@ class PMAnvil extends RegionLevelProvider{
 		return new CompoundTag("", [
 			new ByteArrayTag("Blocks",     $subChunk->getBlockIdArray()),
 			new ByteArrayTag("Data",       $subChunk->getBlockDataArray()),
-			new ByteArrayTag("SkyLight",   $subChunk->getBlockSkyLightArray()),
-			new ByteArrayTag("BlockLight", $subChunk->getBlockLightArray())
+			new ByteArrayTag("SkyLight",   $dummyLight = str_repeat("\x00", 2048)),
+			new ByteArrayTag("BlockLight", $dummyLight)
 		]);
 	}
 
 	protected function deserializeSubChunk(CompoundTag $subChunk) : SubChunk{
 		return new SubChunk(
 			$subChunk->getByteArray("Blocks"),
-			$subChunk->getByteArray("Data"),
-			$subChunk->getByteArray("SkyLight"),
-			$subChunk->getByteArray("BlockLight")
+			$subChunk->getByteArray("Data")
+			//ignore light information
 		);
 	}
 

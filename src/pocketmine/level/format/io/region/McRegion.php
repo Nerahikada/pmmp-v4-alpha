@@ -48,12 +48,10 @@ class McRegion extends RegionLevelProvider{
 
 		$nbt->setLong("LastUpdate", 0); //TODO
 		$nbt->setByte("TerrainPopulated", $chunk->isPopulated() ? 1 : 0);
-		$nbt->setByte("LightPopulated", $chunk->isLightPopulated() ? 1 : 0);
+		$nbt->setByte("LightPopulated", 0); //Not saving lighting information
 
 		$ids = "";
 		$data = "";
-		$skyLight = "";
-		$blockLight = "";
 		$subChunks = $chunk->getSubChunks();
 		for($x = 0; $x < 16; ++$x){
 			for($z = 0; $z < 16; ++$z){
@@ -61,16 +59,14 @@ class McRegion extends RegionLevelProvider{
 					$subChunk = $subChunks[$y];
 					$ids .= $subChunk->getBlockIdColumn($x, $z);
 					$data .= $subChunk->getBlockDataColumn($x, $z);
-					$skyLight .= $subChunk->getBlockSkyLightColumn($x, $z);
-					$blockLight .= $subChunk->getBlockLightColumn($x, $z);
 				}
 			}
 		}
 
 		$nbt->setByteArray("Blocks", $ids);
 		$nbt->setByteArray("Data", $data);
-		$nbt->setByteArray("SkyLight", $skyLight);
-		$nbt->setByteArray("BlockLight", $blockLight);
+		$nbt->setByteArray("SkyLight", $dummyLight = str_repeat("\x00", 16384));
+		$nbt->setByteArray("BlockLight", $dummyLight);
 
 		$nbt->setByteArray("Biomes", $chunk->getBiomeIdArray()); //doesn't exist in regular McRegion, this is here for PocketMine-MP only
 		$nbt->setByteArray("HeightMap", pack("C*", ...$chunk->getHeightMapArray())); //this is ByteArray in McRegion, but IntArray in Anvil (due to raised build height)
@@ -111,8 +107,6 @@ class McRegion extends RegionLevelProvider{
 		$subChunks = [];
 		$fullIds = $chunk->hasTag("Blocks", ByteArrayTag::class) ? $chunk->getByteArray("Blocks") : str_repeat("\x00", 32768);
 		$fullData = $chunk->hasTag("Data", ByteArrayTag::class) ? $chunk->getByteArray("Data") : str_repeat("\x00", 16384);
-		$fullSkyLight = $chunk->hasTag("SkyLight", ByteArrayTag::class) ? $chunk->getByteArray("SkyLight") : str_repeat("\xff", 16384);
-		$fullBlockLight = $chunk->hasTag("BlockLight", ByteArrayTag::class) ? $chunk->getByteArray("BlockLight") : str_repeat("\x00", 16384);
 
 		for($y = 0; $y < 8; ++$y){
 			$offset = ($y << 4);
@@ -127,19 +121,7 @@ class McRegion extends RegionLevelProvider{
 				$data .= substr($fullData, $offset, 8);
 				$offset += 64;
 			}
-			$skyLight = "";
-			$offset = ($y << 3);
-			for($i = 0; $i < 256; ++$i){
-				$skyLight .= substr($fullSkyLight, $offset, 8);
-				$offset += 64;
-			}
-			$blockLight = "";
-			$offset = ($y << 3);
-			for($i = 0; $i < 256; ++$i){
-				$blockLight .= substr($fullBlockLight, $offset, 8);
-				$offset += 64;
-			}
-			$subChunks[$y] = new SubChunk($ids, $data, $skyLight, $blockLight);
+			$subChunks[$y] = new SubChunk($ids, $data);
 		}
 
 		if($chunk->hasTag("BiomeColors", IntArrayTag::class)){
@@ -166,7 +148,6 @@ class McRegion extends RegionLevelProvider{
 			$biomeIds,
 			$heightMap
 		);
-		$result->setLightPopulated($chunk->getByte("LightPopulated", 0) !== 0);
 		$result->setPopulated($chunk->getByte("TerrainPopulated", 0) !== 0);
 		$result->setGenerated(true);
 		return $result;

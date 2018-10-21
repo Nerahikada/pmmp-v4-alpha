@@ -154,17 +154,10 @@ class LevelDB extends BaseLevelProvider{
 						case 0:
 							$blocks = $binaryStream->get(4096);
 							$blockData = $binaryStream->get(2048);
-							if($chunkVersion < 4){
-								$blockSkyLight = $binaryStream->get(2048);
-								$blockLight = $binaryStream->get(2048);
-							}else{
-								//Mojang didn't bother changing the subchunk version when they stopped saving sky light -_-
-								$blockSkyLight = "";
-								$blockLight = "";
-								$lightPopulated = false;
-							}
 
-							$subChunks[$y] = new SubChunk($blocks, $blockData, $blockSkyLight, $blockLight);
+							//this ignores 4096 bytes of light information for chunk format version < 4
+
+							$subChunks[$y] = new SubChunk($blocks, $blockData);
 							break;
 						default:
 							//TODO: set chunks read-only so the version on disk doesn't get overwritten
@@ -181,8 +174,7 @@ class LevelDB extends BaseLevelProvider{
 				$binaryStream->setBuffer($this->db->get($index . self::TAG_LEGACY_TERRAIN));
 				$fullIds = $binaryStream->get(32768);
 				$fullData = $binaryStream->get(16384);
-				$fullSkyLight = $binaryStream->get(16384);
-				$fullBlockLight = $binaryStream->get(16384);
+				$binaryStream->offset += 32768; //Skip lighting information (16KB sky light, 16KB block light)
 
 				for($yy = 0; $yy < 8; ++$yy){
 					$subOffset = ($yy << 4);
@@ -197,19 +189,8 @@ class LevelDB extends BaseLevelProvider{
 						$data .= substr($fullData, $subOffset, 8);
 						$subOffset += 64;
 					}
-					$skyLight = "";
-					$subOffset = ($yy << 3);
-					for($i = 0; $i < 256; ++$i){
-						$skyLight .= substr($fullSkyLight, $subOffset, 8);
-						$subOffset += 64;
-					}
-					$blockLight = "";
-					$subOffset = ($yy << 3);
-					for($i = 0; $i < 256; ++$i){
-						$blockLight .= substr($fullBlockLight, $subOffset, 8);
-						$subOffset += 64;
-					}
-					$subChunks[$yy] = new SubChunk($ids, $data, $skyLight, $blockLight);
+
+					$subChunks[$yy] = new SubChunk($ids, $data);
 				}
 
 				$heightMap = array_values(unpack("C*", $binaryStream->get(256)));
@@ -273,7 +254,6 @@ class LevelDB extends BaseLevelProvider{
 
 		$chunk->setGenerated(true);
 		$chunk->setPopulated(true);
-		$chunk->setLightPopulated($lightPopulated);
 
 		return $chunk;
 	}
