@@ -27,8 +27,10 @@ class SubChunk implements SubChunkInterface{
 
 	protected $ids;
 	protected $data;
-	protected $blockLight;
-	protected $skyLight;
+	/** @var string */
+	public $blockLight;
+	/** @var string */
+	public $skyLight;
 
 	private static function assignData(&$target, string $data, int $length, string $value = "\x00"){
 		if(strlen($data) !== $length){

@@ -45,10 +45,13 @@ class SubChunkIteratorManager{
 	protected $currentZ;
 	/** @var bool */
 	protected $allocateEmptySubs = true;
+	/** @var \Closure|null */
+	protected $subchunkSwitchCallback;
 
-	public function __construct(ChunkManager $level, bool $allocateEmptySubs = true){
+	public function __construct(ChunkManager $level, bool $allocateEmptySubs = true, ?\Closure $subchunkSwitchCallback = null){
 		$this->level = $level;
 		$this->allocateEmptySubs = $allocateEmptySubs;
+		$this->subchunkSwitchCallback = $subchunkSwitchCallback;
 	}
 
 	public function moveTo(int $x, int $y, int $z) : bool{
@@ -70,6 +73,7 @@ class SubChunkIteratorManager{
 			if($this->currentSubChunk instanceof EmptySubChunk){
 				return false;
 			}
+			($this->subchunkSwitchCallback)();
 		}
 
 		return true;

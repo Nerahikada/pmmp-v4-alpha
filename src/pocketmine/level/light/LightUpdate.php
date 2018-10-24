@@ -25,6 +25,7 @@ namespace pocketmine\level\light;
 
 use pocketmine\block\BlockFactory;
 use pocketmine\level\ChunkManager;
+use pocketmine\level\format\SubChunk;
 use pocketmine\level\Level;
 use pocketmine\level\utils\SubChunkIteratorManager;
 
@@ -49,17 +50,36 @@ abstract class LightUpdate{
 	/** @var SubChunkIteratorManager */
 	protected $subChunkHandler;
 
+	/** @var string */
+	protected $lightArray;
+
 	public function __construct(ChunkManager $level){
 		$this->level = $level;
 		$this->removalQueue = new \SplQueue();
 		$this->spreadQueue = new \SplQueue();
 
-		$this->subChunkHandler = new SubChunkIteratorManager($this->level);
+		$this->subChunkHandler = new SubChunkIteratorManager($this->level, true, function() : void{
+			unset($this->lightArray);
+			$subchunk = $this->subChunkHandler->currentSubChunk;
+			if($subchunk instanceof SubChunk){
+				$this->lightArray = &$this->getLightArrayRef($subchunk);
+			}
+		});
 	}
 
-	abstract protected function getLight(int $x, int $y, int $z) : int;
+	abstract protected function &getLightArrayRef(SubChunk $subChunk) : string;
 
-	abstract protected function setLight(int $x, int $y, int $z, int $level);
+	protected function getLight(int $x, int $y, int $z) : int{
+		return (ord($this->lightArray{(($x & 0xf) << 7) | (($z & 0xf) << 3) | (($y & 0xf) >> 1)}) >> (($y & 1) << 2)) & 0xf;
+	}
+
+	protected function setLight(int $x, int $y, int $z, int $level) : void{
+		$i = (($x & 0xf) << 7) | (($z & 0xf) << 3) | (($y & 0xf) >> 1);
+
+		$shift = ($y & 1) << 2;
+		$byte = ord($this->lightArray{$i});
+		$this->lightArray{$i} = chr(($byte & ~(0xf << $shift)) | (($level & 0xf) << $shift));
+	}
 
 	public function setAndUpdateLight(int $x, int $y, int $z, int $newLevel){
 		$this->updateNodes[Level::blockHash($x, $y, $z)] = [$x, $y, $z, $newLevel];
