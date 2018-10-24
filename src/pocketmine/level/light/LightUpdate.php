@@ -135,7 +135,7 @@ abstract class LightUpdate{
 				continue;
 			}
 
-			$newAdjacentLight = $this->getLight($x, $y, $z);
+			$newAdjacentLight = (ord($this->lightArray{(($x & 0xf) << 7) | (($z & 0xf) << 3) | (($y & 0xf) >> 1)}) >> (($y & 1) << 2)) & 0xf;
 			if($newAdjacentLight <= 0){
 				continue;
 			}
@@ -157,11 +157,17 @@ abstract class LightUpdate{
 		}
 	}
 
-	protected function computeRemoveLight(int $x, int $y, int $z, int $oldAdjacentLevel){
-		$current = $this->getLight($x, $y, $z);
+	protected function computeRemoveLight($x, $y, $z, $oldAdjacentLevel){
+		$idx = (($x & 0xf) << 7) | (($z & 0xf) << 3) | (($y & 0xf) >> 1);
+		$current = (ord($this->lightArray{$idx}) >> (($y & 1) << 2)) & 0xf;
 
 		if($current !== 0 and $current < $oldAdjacentLevel){
-			$this->setLight($x, $y, $z, 0);
+			//set light level to 0
+			if(($y & 1) === 0){
+				$this->lightArray{$idx} = $this->lightArray{$idx} & "\xf0";
+			}else{
+				$this->lightArray{$idx} = $this->lightArray{$idx} & "\x0f";
+			}
 
 			if(!isset($this->removalVisited[$index = Level::blockHash($x, $y, $z)])){
 				$this->removalVisited[$index] = true;
@@ -177,12 +183,16 @@ abstract class LightUpdate{
 		}
 	}
 
-	protected function computeSpreadLight(int $x, int $y, int $z, int $newAdjacentLevel){
-		$current = $this->getLight($x, $y, $z);
+	protected function computeSpreadLight($x, $y, $z, $newAdjacentLevel){
+		$idx = (($x & 0xf) << 7) | (($z & 0xf) << 3) | (($y & 0xf) >> 1);
+		$byte = ord($this->lightArray{$idx});
+		$shift = ($y & 1) << 2;
+		$current = ($byte >> $shift) & 0xf;
+
 		$potentialLight = $newAdjacentLevel - BlockFactory::$lightFilter[$this->subChunkHandler->currentSubChunk->getFullBlock($x & 0x0f, $y & 0x0f, $z & 0x0f)];
 
 		if($current < $potentialLight){
-			$this->setLight($x, $y, $z, $potentialLight);
+			$this->lightArray{$idx} = chr(($byte & ~(0xf << $shift)) | (($potentialLight & 0xf) << $shift));
 
 			if(!isset($this->spreadVisited[$index = Level::blockHash($x, $y, $z)]) and $potentialLight > 1){
 				$this->spreadVisited[$index] = true;
