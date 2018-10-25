@@ -21,19 +21,31 @@
 
 declare(strict_types=1);
 
-namespace pocketmine\event\entity;
+namespace pocketmine\network\mcpe\protocol;
 
-use pocketmine\entity\Entity;
+#include <rules/DataPacket.h>
 
-/**
- * Called when a entity is despawned
- */
-class EntityDespawnEvent extends EntityEvent{
+use pocketmine\network\mcpe\handler\SessionHandler;
 
-	/**
-	 * @param Entity $entity
-	 */
-	public function __construct(Entity $entity){
-		$this->entity = $entity;
+class ScriptCustomEventPacket extends DataPacket{
+	public const NETWORK_ID = ProtocolInfo::SCRIPT_CUSTOM_EVENT_PACKET;
+
+	/** @var string */
+	public $eventName;
+	/** @var string json data */
+	public $eventData;
+
+	protected function decodePayload() : void{
+		$this->eventName = $this->getString();
+		$this->eventData = $this->getString();
+	}
+
+	protected function encodePayload() : void{
+		$this->putString($this->eventName);
+		$this->putString($this->eventData);
+	}
+
+	public function handle(SessionHandler $handler) : bool{
+		return $handler->handleScriptCustomEvent($this);
 	}
 }

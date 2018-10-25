@@ -21,19 +21,25 @@
 
 declare(strict_types=1);
 
-namespace pocketmine\event\entity;
+namespace pocketmine\item;
 
-use pocketmine\entity\Entity;
+use pocketmine\entity\Living;
 
-/**
- * Called when a entity is despawned
- */
-class EntityDespawnEvent extends EntityEvent{
+class MilkBucket extends Item implements Consumable{
 
-	/**
-	 * @param Entity $entity
-	 */
-	public function __construct(Entity $entity){
-		$this->entity = $entity;
+	public function getMaxStackSize() : int{
+		return 1;
+	}
+
+	public function getResidue(){
+		return ItemFactory::get(Item::BUCKET, 0, 1);
+	}
+
+	public function getAdditionalEffects() : array{
+		return [];
+	}
+
+	public function onConsume(Living $consumer){
+		$consumer->removeAllEffects();
 	}
 }

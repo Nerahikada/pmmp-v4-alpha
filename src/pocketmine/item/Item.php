@@ -65,12 +65,7 @@ class Item implements ItemIds, \JsonSerializable{
 			self::$cachedParser = new LittleEndianNBTStream();
 		}
 
-		$data = self::$cachedParser->read($tag);
-		if(!($data instanceof CompoundTag)){
-			throw new \InvalidArgumentException("Invalid item NBT string given, it could not be deserialized");
-		}
-
-		return $data;
+		return self::$cachedParser->read($tag);
 	}
 
 	private static function writeCompoundTag(CompoundTag $tag) : string{
@@ -180,7 +175,7 @@ class Item implements ItemIds, \JsonSerializable{
 	/** @var CompoundTag|null */
 	private $cachedNBT = null;
 	/** @var int */
-	public $count = 1;
+	protected $count = 1;
 	/** @var string */
 	protected $name;
 
@@ -200,7 +195,7 @@ class Item implements ItemIds, \JsonSerializable{
 			throw new \InvalidArgumentException("ID must be in range " . -0x8000 . " - " . 0x7fff);
 		}
 		$this->id = $id;
-		$this->setDamage($meta);
+		$this->meta = $meta !== -1 ? $meta & 0x7FFF : -1;
 		$this->name = $name;
 	}
 
@@ -523,6 +518,7 @@ class Item implements ItemIds, \JsonSerializable{
 
 	/**
 	 * @param string $name
+	 *
 	 * @return NamedTag|null
 	 */
 	public function getNamedTagEntry(string $name) : ?NamedTag{
@@ -557,6 +553,7 @@ class Item implements ItemIds, \JsonSerializable{
 
 	/**
 	 * Sets the Item's NBT from the supplied CompoundTag object.
+	 *
 	 * @param CompoundTag $tag
 	 *
 	 * @return Item
@@ -589,6 +586,7 @@ class Item implements ItemIds, \JsonSerializable{
 
 	/**
 	 * @param int $count
+	 *
 	 * @return Item
 	 */
 	public function setCount(int $count) : Item{
@@ -663,18 +661,8 @@ class Item implements ItemIds, \JsonSerializable{
 	/**
 	 * @return int
 	 */
-	final public function getDamage() : int{
+	public function getDamage() : int{
 		return $this->meta;
-	}
-
-	/**
-	 * @param int $meta
-	 * @return Item
-	 */
-	public function setDamage(int $meta) : Item{
-		$this->meta = $meta !== -1 ? $meta & 0x7FFF : -1;
-
-		return $this;
 	}
 
 	/**
@@ -779,6 +767,7 @@ class Item implements ItemIds, \JsonSerializable{
 	 * Returns whether the item was changed, for example count decrease or durability change.
 	 *
 	 * @param Player $player
+	 *
 	 * @return bool
 	 */
 	public function onReleaseUsing(Player $player) : bool{
@@ -844,6 +833,7 @@ class Item implements ItemIds, \JsonSerializable{
 
 	/**
 	 * Returns whether the specified item stack has the same ID, damage, NBT and count as this item stack.
+	 *
 	 * @param Item $other
 	 *
 	 * @return bool
@@ -856,7 +846,7 @@ class Item implements ItemIds, \JsonSerializable{
 	 * @return string
 	 */
 	final public function __toString() : string{
-		return "Item " . $this->name . " (" . $this->id . ":" . ($this->hasAnyDamageValue() ? "?" : $this->meta) . ")x" . $this->count . ($this->hasCompoundTag() ? " tags:0x" . bin2hex($this->getCompoundTag()) : "");
+		return "Item " . $this->name . " (" . $this->id . ":" . ($this->hasAnyDamageValue() ? "?" : $this->getDamage()) . ")x" . $this->count . ($this->hasCompoundTag() ? " tags:0x" . bin2hex($this->getCompoundTag()) : "");
 	}
 
 	/**
@@ -888,6 +878,7 @@ class Item implements ItemIds, \JsonSerializable{
 	 * Returns an Item from properties created in an array by {@link Item#jsonSerialize}
 	 *
 	 * @param array $data
+	 *
 	 * @return Item
 	 */
 	final public static function jsonDeserialize(array $data) : Item{
@@ -921,7 +912,7 @@ class Item implements ItemIds, \JsonSerializable{
 		$result = new CompoundTag($tagName, [
 			new ShortTag("id", $this->id),
 			new ByteTag("Count", Binary::signByte($this->count)),
-			new ShortTag("Damage", $this->meta)
+			new ShortTag("Damage", $this->getDamage())
 		]);
 
 		if($this->hasCompoundTag()){
@@ -957,12 +948,11 @@ class Item implements ItemIds, \JsonSerializable{
 			$item = ItemFactory::get($idTag->getValue(), $meta, $count);
 		}elseif($idTag instanceof StringTag){ //PC item save format
 			try{
-				$item = ItemFactory::fromString($idTag->getValue());
+				$item = ItemFactory::fromString($idTag->getValue() . ":$meta");
 			}catch(\InvalidArgumentException $e){
 				//TODO: improve error handling
 				return ItemFactory::get(Item::AIR, 0, 0);
 			}
-			$item->setDamage($meta);
 			$item->setCount($count);
 		}else{
 			throw new \InvalidArgumentException("Item CompoundTag ID must be an instance of StringTag or ShortTag, " . get_class($idTag) . " given");

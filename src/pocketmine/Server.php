@@ -50,6 +50,7 @@ use pocketmine\lang\Language;
 use pocketmine\lang\LanguageNotFoundException;
 use pocketmine\lang\TextContainer;
 use pocketmine\level\biome\Biome;
+use pocketmine\level\format\io\exception\UnsupportedLevelFormatException;
 use pocketmine\level\format\io\LevelProvider;
 use pocketmine\level\format\io\LevelProviderManager;
 use pocketmine\level\generator\Generator;
@@ -122,9 +123,6 @@ class Server{
 
 	/** @var Server */
 	private static $instance = null;
-
-	/** @var \Threaded */
-	private static $sleeper = null;
 
 	/** @var SleeperHandler */
 	private $tickSleeper;
@@ -559,14 +557,6 @@ class Server{
 	}
 
 	/**
-	 * @deprecated
-	 * @return bool
-	 */
-	public function getAllowFlight() : bool{
-		return true;
-	}
-
-	/**
 	 * @return bool
 	 */
 	public function isHardcore() : bool{
@@ -761,12 +751,7 @@ class Server{
 			if(file_exists($path . "$name.dat")){
 				try{
 					$nbt = new BigEndianNBTStream();
-					$compound = $nbt->readCompressed(file_get_contents($path . "$name.dat"));
-					if(!($compound instanceof CompoundTag)){
-						throw new \RuntimeException("Invalid data found in \"$name.dat\", expected " . CompoundTag::class . ", got " . (is_object($compound) ? get_class($compound) : gettype($compound)));
-					}
-
-					return $compound;
+					return $nbt->readCompressed(file_get_contents($path . "$name.dat"));
 				}catch(\Throwable $e){ //zlib decode error / corrupt data
 					rename($path . "$name.dat", $path . "$name.dat.bak");
 					$this->logger->notice($this->getLanguage()->translateString("pocketmine.data.playerCorrupted", [$name]));
@@ -1001,11 +986,12 @@ class Server{
 			throw new \InvalidStateException("The default level cannot be unloaded while running, please switch levels.");
 		}
 
-		return $level->unload($forceUnload);
+		return $level->onUnload($forceUnload);
 	}
 
 	/**
 	 * @internal
+	 *
 	 * @param Level $level
 	 */
 	public function removeLevel(Level $level) : void{
@@ -1047,8 +1033,13 @@ class Server{
 		}
 		$providerClass = array_shift($providers);
 
-		/** @see LevelProvider::__construct() */
-		$level = new Level($this, $name, new $providerClass($path));
+		try{
+			/** @see LevelProvider::__construct() */
+			$level = new Level($this, $name, new $providerClass($path));
+		}catch(UnsupportedLevelFormatException $e){
+			$this->logger->error($this->language->translateString("pocketmine.level.loadError", [$name, $e->getMessage()]));
+			return false;
+		}
 
 		$this->levels[$level->getId()] = $level;
 
@@ -1139,9 +1130,7 @@ class Server{
 		}
 		$path = $this->getDataPath() . "worlds/" . $name . "/";
 		if(!($this->getLevelByName($name) instanceof Level)){
-			return is_dir($path) and !empty(array_filter(scandir($path, SCANDIR_SORT_NONE), function($v){
-				return $v !== ".." and $v !== ".";
-			}));
+			return !empty(LevelProviderManager::getMatchingProviders($path));
 		}
 
 		return true;
@@ -1402,12 +1391,6 @@ class Server{
 		return self::$instance;
 	}
 
-	public static function microSleep(int $microseconds){
-		Server::$sleeper->synchronized(function(int $ms){
-			Server::$sleeper->wait($ms);
-		}, $microseconds);
-	}
-
 	/**
 	 * @param \ClassLoader              $autoloader
 	 * @param \AttachableThreadedLogger $logger
@@ -1419,7 +1402,7 @@ class Server{
 			throw new \InvalidStateException("Only one server instance can exist at once");
 		}
 		self::$instance = $this;
-		self::$sleeper = new \Threaded;
+
 		$this->tickSleeper = new SleeperHandler();
 		$this->autoloader = $autoloader;
 		$this->logger = $logger;
@@ -2373,7 +2356,7 @@ class Server{
 		$pk = new PlayerListPacket();
 		$pk->type = PlayerListPacket::TYPE_ADD;
 
-		$pk->entries[] = PlayerListEntry::createAdditionEntry($uuid, $entityId, $name, "", 0, $skin, $xboxUserId);
+		$pk->entries[] = PlayerListEntry::createAdditionEntry($uuid, $entityId, $name, $skin, $xboxUserId);
 
 		$this->broadcastPacket($players ?? $this->playerList, $pk);
 	}
@@ -2396,7 +2379,7 @@ class Server{
 		$pk = new PlayerListPacket();
 		$pk->type = PlayerListPacket::TYPE_ADD;
 		foreach($this->playerList as $player){
-			$pk->entries[] = PlayerListEntry::createAdditionEntry($player->getUniqueId(), $player->getId(), $player->getDisplayName(), "", 0, $player->getSkin(), $player->getXuid());
+			$pk->entries[] = PlayerListEntry::createAdditionEntry($player->getUniqueId(), $player->getId(), $player->getDisplayName(), $player->getSkin(), $player->getXuid());
 		}
 
 		$p->sendDataPacket($pk);

@@ -149,6 +149,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 	/**
 	 * Checks a supplied username and checks it is valid.
+	 *
 	 * @param string $name
 	 *
 	 * @return bool
@@ -573,7 +574,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	/**
 	 * @param Plugin $plugin
 	 * @param string $name
-	 * @param bool $value
+	 * @param bool   $value
 	 *
 	 * @return PermissionAttachment
 	 */
@@ -1265,6 +1266,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	 * TODO: remove this when Spectator Mode gets added properly to MCPE
 	 *
 	 * @param int $gamemode
+	 *
 	 * @return int
 	 */
 	public static function getClientFriendlyGamemode(int $gamemode) : int{
@@ -1483,14 +1485,9 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 			$this->server->getLogger()->warning($this->getName() . " moved too fast, reverting movement");
 			$this->server->getLogger()->debug("Old position: " . $this->asVector3() . ", new position: " . $this->newPosition);
 			$revert = true;
-		}else{
-			$chunkX = $newPos->getFloorX() >> 4;
-			$chunkZ = $newPos->getFloorZ() >> 4;
-
-			if(!$this->level->isChunkLoaded($chunkX, $chunkZ) or !$this->level->isChunkGenerated($chunkX, $chunkZ)){
-				$revert = true;
-				$this->nextChunkOrderRun = 0;
-			}
+		}elseif(!$this->level->isInLoadedTerrain($newPos) or !$this->level->isChunkGenerated($newPos->getFloorX() >> 4, $newPos->getFloorZ() >> 4)){
+			$revert = true;
+			$this->nextChunkOrderRun = 0;
 		}
 
 		if(!$revert and $distanceSquared != 0){
@@ -1966,9 +1963,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 	public function handleLevelSoundEvent(LevelSoundEventPacket $packet) : bool{
 		//TODO: add events so plugins can change this
-		if($this->chunk !== null){
-			$this->getLevel()->addChunkPacket($this->chunk->getX(), $this->chunk->getZ(), $packet);
-		}
+		$this->getLevel()->broadcastPacketToViewers($this, $packet);
 		return true;
 	}
 
@@ -2440,10 +2435,6 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		if($t instanceof Spawnable){
 			$nbt = new NetworkLittleEndianNBTStream();
 			$compound = $nbt->read($packet->namedtag);
-
-			if(!($compound instanceof CompoundTag)){
-				throw new \InvalidArgumentException("Expected " . CompoundTag::class . " in block entity NBT, got " . (is_object($compound) ? get_class($compound) : gettype($compound)));
-			}
 			if(!$t->updateCompoundTag($compound, $this)){
 				$t->spawnTo($this);
 			}
@@ -2561,7 +2552,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	 * Transfers a player to another server.
 	 *
 	 * @param string $address The IP address or hostname of the destination server
-	 * @param int    $port    The destination port, defaults to 19132
+	 * @param int    $port The destination port, defaults to 19132
 	 * @param string $message Message to show in the console when closing the player
 	 *
 	 * @return bool if transfer was successful.
@@ -2585,8 +2576,8 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	/**
 	 * Kicks a player from the server
 	 *
-	 * @param string $reason
-	 * @param bool   $isAdmin
+	 * @param string               $reason
+	 * @param bool                 $isAdmin
 	 * @param TextContainer|string $quitMessage
 	 *
 	 * @return bool
@@ -2689,7 +2680,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	 * Internal function used for sending titles.
 	 *
 	 * @param string $title
-	 * @param int $type
+	 * @param int    $type
 	 */
 	protected function sendTitleText(string $title, int $type){
 		$pk = new SetTitlePacket();
@@ -2783,6 +2774,9 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$pk = new ModalFormRequestPacket();
 		$pk->formId = $id;
 		$pk->formData = json_encode($form);
+		if($pk->formData === false){
+			throw new \InvalidArgumentException("Failed to encode form JSON: " . json_last_error_msg());
+		}
 		if($this->sendDataPacket($pk)){
 			$this->forms[$id] = $form;
 		}

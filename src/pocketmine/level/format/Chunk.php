@@ -54,7 +54,7 @@ class Chunk{
 	/** @var bool */
 	protected $isInit = false;
 
-	/** @var bool*/
+	/** @var bool */
 	protected $lightPopulated = false;
 	/** @var bool */
 	protected $terrainGenerated = false;
@@ -328,8 +328,8 @@ class Chunk{
 	/**
 	 * Returns the Y coordinate of the highest non-air block at the specified X/Z chunk block coordinates
 	 *
-	 * @param int  $x 0-15
-	 * @param int  $z 0-15
+	 * @param int $x 0-15
+	 * @param int $z 0-15
 	 *
 	 * @return int 0-255, or -1 if there are no blocks in the column
 	 */
@@ -367,6 +367,7 @@ class Chunk{
 
 	/**
 	 * Returns the heightmap value at the specified X/Z chunk block coordinates
+	 *
 	 * @param int $x 0-15
 	 * @param int $z 0-15
 	 * @param int $value
@@ -397,7 +398,7 @@ class Chunk{
 	public function recalculateHeightMapColumn(int $x, int $z) : int{
 		$max = $this->getHighestBlockAt($x, $z);
 		for($y = $max; $y >= 0; --$y){
-			if(BlockFactory::$lightFilter[$id = $this->getBlockId($x, $y, $z)] > 1 or BlockFactory::$diffusesSkyLight[$id]){
+			if(BlockFactory::$lightFilter[$state = $this->getFullBlock($x, $y, $z)] > 1 or BlockFactory::$diffusesSkyLight[$state]){
 				break;
 			}
 		}
@@ -429,7 +430,7 @@ class Chunk{
 				$light = 15;
 				for(; $y >= 0; --$y){
 					if($light > 0){
-						$light -= BlockFactory::$lightFilter[$this->getBlockId($x, $y, $z)];
+						$light -= BlockFactory::$lightFilter[$this->getFullBlock($x, $y, $z)];
 						if($light <= 0){
 							break;
 						}

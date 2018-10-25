@@ -23,10 +23,10 @@ declare(strict_types=1);
 
 namespace pocketmine\level\format\io\data;
 
+use pocketmine\level\format\io\exception\UnsupportedLevelFormatException;
 use pocketmine\level\generator\Flat;
 use pocketmine\level\generator\GeneratorManager;
 use pocketmine\level\Level;
-use pocketmine\level\LevelException;
 use pocketmine\nbt\LittleEndianNBTStream;
 use pocketmine\nbt\tag\ByteTag;
 use pocketmine\nbt\tag\CompoundTag;
@@ -100,15 +100,13 @@ class BedrockLevelData extends BaseNbtLevelData{
 	protected function load() : ?CompoundTag{
 		$nbt = new LittleEndianNBTStream();
 		$levelData = $nbt->read(substr(file_get_contents($this->dataPath), 8));
-		if($levelData instanceof CompoundTag){
-			$version = $levelData->getInt("StorageVersion", INT32_MAX, true);
-			if($version > self::CURRENT_STORAGE_VERSION){
-				throw new LevelException("Specified LevelDB world format version ($version) is not supported by " . \pocketmine\NAME);
-			}
 
-			return $levelData;
+		$version = $levelData->getInt("StorageVersion", INT32_MAX, true);
+		if($version > self::CURRENT_STORAGE_VERSION){
+			throw new UnsupportedLevelFormatException("Specified LevelDB world format version ($version) is not supported by " . \pocketmine\NAME);
 		}
-		return null;
+
+		return $levelData;
 	}
 
 	protected function fix() : void{
@@ -125,9 +123,9 @@ class BedrockLevelData extends BaseNbtLevelData{
 						$this->compoundTag->setString("generatorOptions", "");
 						break;
 					case self::GENERATOR_LIMITED:
-						throw new LevelException("Limited worlds are not currently supported");
+						throw new UnsupportedLevelFormatException("Limited worlds are not currently supported");
 					default:
-						throw new LevelException("Unknown LevelDB world format type, this level cannot be loaded");
+						throw new UnsupportedLevelFormatException("Unknown LevelDB world format type, this level cannot be loaded");
 				}
 			}else{
 				$this->compoundTag->setString("generatorName", "default");

@@ -352,6 +352,7 @@ class PluginManager{
 	 * Returns whether a specified API version string is considered compatible with the server's API version.
 	 *
 	 * @param string ...$versions
+	 *
 	 * @return bool
 	 */
 	public function isCompatibleApi(string ...$versions) : bool{
@@ -412,7 +413,7 @@ class PluginManager{
 					$permManager->addPermission($perm);
 				}
 				$plugin->getScheduler()->setEnabled(true);
-				$plugin->setEnabled(true);
+				$plugin->onEnableStateChange(true);
 
 				$this->enabledPlugins[$plugin->getDescription()->getName()] = $plugin;
 
@@ -498,7 +499,7 @@ class PluginManager{
 			unset($this->enabledPlugins[$plugin->getDescription()->getName()]);
 
 			try{
-				$plugin->setEnabled(false);
+				$plugin->onEnableStateChange(false);
 			}catch(\Throwable $e){
 				$this->server->getLogger()->logException($e);
 			}
@@ -522,18 +523,6 @@ class PluginManager{
 		$this->plugins = [];
 		$this->enabledPlugins = [];
 		$this->fileAssociations = [];
-	}
-
-	/**
-	 * Calls an event
-	 *
-	 * @deprecated
-	 * @see Event::call()
-	 *
-	 * @param Event $event
-	 */
-	public function callEvent(Event $event){
-		$event->call();
 	}
 
 	/**

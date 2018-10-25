@@ -21,19 +21,8 @@
 
 declare(strict_types=1);
 
-namespace pocketmine\event\entity;
+namespace pocketmine\level\format\io\exception;
 
-use pocketmine\entity\Entity;
+class UnsupportedLevelFormatException extends \RuntimeException{
 
-/**
- * Called when a entity is despawned
- */
-class EntityDespawnEvent extends EntityEvent{
-
-	/**
-	 * @param Entity $entity
-	 */
-	public function __construct(Entity $entity){
-		$this->entity = $entity;
-	}
 }
