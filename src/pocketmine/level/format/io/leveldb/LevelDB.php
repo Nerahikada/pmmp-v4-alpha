@@ -206,10 +206,7 @@ class LevelDB extends BaseLevelProvider{
 		/** @var CompoundTag[] $entities */
 		$entities = [];
 		if(($entityData = $this->db->get($index . self::TAG_ENTITY)) !== false and $entityData !== ""){
-			$entities = $nbt->read($entityData, true);
-			if(!is_array($entities)){
-				$entities = [$entities];
-			}
+			$entities = $nbt->readMultiple($entityData);
 		}
 
 		/** @var CompoundTag $entityNBT */
@@ -219,12 +216,10 @@ class LevelDB extends BaseLevelProvider{
 			}
 		}
 
+		/** @var CompoundTag[] $tiles */
 		$tiles = [];
 		if(($tileData = $this->db->get($index . self::TAG_BLOCK_ENTITY)) !== false and $tileData !== ""){
-			$tiles = $nbt->read($tileData, true);
-			if(!is_array($tiles)){
-				$tiles = [$tiles];
-			}
+			$tiles = $nbt->readMultiple($tileData);
 		}
 
 		//TODO: extra data should be converted into blockstorage layers (first they need to be implemented!)
@@ -306,7 +301,7 @@ class LevelDB extends BaseLevelProvider{
 	private function writeTags(array $targets, string $index) : void{
 		if(!empty($targets)){
 			$nbt = new LittleEndianNBTStream();
-			$this->db->put($index, $nbt->write($targets));
+			$this->db->put($index, $nbt->writeMultiple($targets));
 		}else{
 			$this->db->delete($index);
 		}
