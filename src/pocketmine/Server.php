@@ -2280,7 +2280,6 @@ class Server{
 
 		while($this->isRunning){
 			$this->tick();
-			throw new \Error();
 
 			//sleeps are self-correcting - if we undersleep 1ms on this tick, we'll sleep an extra ms on the next tick
 			$this->tickSleeper->sleepUntil($this->nextTick);
