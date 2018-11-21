@@ -29,7 +29,6 @@ use pocketmine\plugin\PluginLoadOrder;
 use pocketmine\plugin\PluginManager;
 use pocketmine\utils\Utils;
 use pocketmine\utils\VersionString;
-use raklib\RakLib;
 
 class CrashDump{
 
@@ -43,117 +42,46 @@ class CrashDump{
 
 	/** @var Server */
 	private $server;
+	/** @var resource */
 	private $fp;
+	/** @var int */
 	private $time;
-	private $data = [];
-	/** @var string */
-	private $encodedData = "";
-	/** @var string */
-	private $path;
+	/** @var array */
+	private $data;
 
 	public function __construct(Server $server){
 		$this->time = time();
 		$this->server = $server;
-		if(!is_dir($this->server->getDataPath() . "crashdumps")){
-			mkdir($this->server->getDataPath() . "crashdumps");
-		}
-		$this->path = $this->server->getDataPath() . "crashdumps/" . date("D_M_j-H.i.s-T_Y", $this->time) . ".log";
-		$this->fp = @fopen($this->path, "wb");
-		if(!is_resource($this->fp)){
-			throw new \RuntimeException("Could not create Crash Dump");
-		}
-		$this->data["format_version"] = self::FORMAT_VERSION;
-		$this->data["time"] = $this->time;
-		$this->addLine($this->server->getName() . " Crash Dump " . date("D M j H:i:s T Y", $this->time));
-		$this->addLine();
-		$this->baseCrash();
-		$this->generalData();
-		$this->pluginsData();
-
-		$this->extraData();
-
-		$this->encodeData();
-
-		fclose($this->fp);
+		$this->data = $this->generateData();
 	}
 
-	public function getPath() : string{
-		return $this->path;
+	private function generateData() : array{
+		return [
+			"format_version" => self::FORMAT_VERSION,
+			"time" => $this->time,
+			"crash" => $this->crashData(),
+			"version" => [
+				"name" => \pocketmine\NAME,
+				"base_version" => \pocketmine\BASE_VERSION,
+				"build" => \pocketmine\BUILD_NUMBER,
+				"is_dev" => \pocketmine\IS_DEVELOPMENT_BUILD,
+				"git" => \pocketmine\GIT_COMMIT
+			],
+			"plugins" => $this->pluginsData(),
+			"config" => $this->configData(),
+			"php" => $this->phpData(),
+			"platform" => [
+				"uname" => php_uname("a"),
+				"php_os" => PHP_OS,
+				"os" => Utils::getOS()
+			]
+		];
 	}
 
-	public function getEncodedData(){
-		return $this->encodedData;
-	}
+	private function crashData() : array{
+		global $lastExceptionError;
 
-	public function getData() : array{
-		return $this->data;
-	}
-
-	private function encodeData(){
-		$this->addLine();
-		$this->addLine("----------------------REPORT THE DATA BELOW THIS LINE-----------------------");
-		$this->addLine();
-		$this->addLine("===BEGIN CRASH DUMP===");
-		$this->encodedData = zlib_encode(json_encode($this->data, JSON_UNESCAPED_SLASHES), ZLIB_ENCODING_DEFLATE, 9);
-		foreach(str_split(base64_encode($this->encodedData), 76) as $line){
-			$this->addLine($line);
-		}
-		$this->addLine("===END CRASH DUMP===");
-	}
-
-	private function pluginsData(){
-		if($this->server->getPluginManager() instanceof PluginManager){
-			$this->addLine();
-			$this->addLine("Loaded plugins:");
-			$this->data["plugins"] = [];
-			foreach($this->server->getPluginManager()->getPlugins() as $p){
-				$d = $p->getDescription();
-				$this->data["plugins"][$d->getName()] = [
-					"name" => $d->getName(),
-					"version" => $d->getVersion(),
-					"authors" => $d->getAuthors(),
-					"api" => $d->getCompatibleApis(),
-					"enabled" => $p->isEnabled(),
-					"depends" => $d->getDepend(),
-					"softDepends" => $d->getSoftDepend(),
-					"main" => $d->getMain(),
-					"load" => $d->getOrder() === PluginLoadOrder::POSTWORLD ? "POSTWORLD" : "STARTUP",
-					"website" => $d->getWebsite()
-				];
-				$this->addLine($d->getName() . " " . $d->getVersion() . " by " . implode(", ", $d->getAuthors()) . " for API(s) " . implode(", ", $d->getCompatibleApis()));
-			}
-		}
-	}
-
-	private function extraData(){
-		global $argv;
-
-		if($this->server->getProperty("auto-report.send-settings", true) !== false){
-			$this->data["parameters"] = (array) $argv;
-			$this->data["server.properties"] = @file_get_contents($this->server->getDataPath() . "server.properties");
-			$this->data["server.properties"] = preg_replace("#^rcon\\.password=(.*)$#m", "rcon.password=******", $this->data["server.properties"]);
-			$this->data["pocketmine.yml"] = @file_get_contents($this->server->getDataPath() . "pocketmine.yml");
-		}else{
-			$this->data["pocketmine.yml"] = "";
-			$this->data["server.properties"] = "";
-			$this->data["parameters"] = [];
-		}
-		$extensions = [];
-		foreach(get_loaded_extensions() as $ext){
-			$extensions[$ext] = phpversion($ext);
-		}
-		$this->data["extensions"] = $extensions;
-
-		if($this->server->getProperty("auto-report.send-phpinfo", true) !== false){
-			ob_start();
-			phpinfo();
-			$this->data["phpinfo"] = ob_get_contents();
-			ob_end_clean();
-		}
-	}
-
-	private function baseCrash(){
-		global $lastExceptionError, $lastError;
+		$crashData = [];
 
 		if(isset($lastExceptionError)){
 			$error = $lastExceptionError;
@@ -185,22 +113,14 @@ class CrashDump{
 			}
 		}
 
-		if(isset($lastError)){
-			$this->data["lastError"] = $lastError;
-		}
-
-		$this->data["error"] = $error;
-		unset($this->data["error"]["fullFile"]);
-		unset($this->data["error"]["trace"]);
-		$this->addLine("Error: " . $error["message"]);
-		$this->addLine("File: " . $error["file"]);
-		$this->addLine("Line: " . $error["line"]);
-		$this->addLine("Type: " . $error["type"]);
+		$crashData["message"] = $error["message"];
+		$crashData["file"] = $error["file"];
+		$crashData["line"] = $error["line"];
+		$crashData["type"] = $error["type"];
+		$crashData["trace"] = $error["trace"];
 
 		if(strpos($error["file"], "src/pocketmine/") === false and strpos($error["file"], "vendor/pocketmine/") === false and file_exists($error["fullFile"])){
-			$this->addLine();
-			$this->addLine("THIS CRASH WAS CAUSED BY A PLUGIN");
-			$this->data["plugin"] = true;
+			$crashData["plugin"] = true;
 
 			$reflection = new \ReflectionClass(PluginBase::class);
 			$file = $reflection->getProperty("file");
@@ -208,63 +128,191 @@ class CrashDump{
 			foreach($this->server->getPluginManager()->getPlugins() as $plugin){
 				$filePath = Utils::cleanPath($file->getValue($plugin));
 				if(strpos($error["file"], $filePath) === 0){
-					$this->data["plugin"] = $plugin->getName();
-					$this->addLine("BAD PLUGIN: " . $plugin->getDescription()->getFullName());
+					$crashData["plugin"] = $plugin->getName();
 					break;
 				}
 			}
 		}else{
-			$this->data["plugin"] = false;
+			$crashData["plugin"] = false;
 		}
 
-		$this->addLine();
-		$this->addLine("Code:");
-		$this->data["code"] = [];
-
+		$crashData["code"] = [];
 		if($this->server->getProperty("auto-report.send-code", true) !== false and file_exists($error["fullFile"])){
 			$file = @file($error["fullFile"], FILE_IGNORE_NEW_LINES);
 			for($l = max(0, $error["line"] - 10); $l < $error["line"] + 10 and isset($file[$l]); ++$l){
-				$this->addLine("[" . ($l + 1) . "] " . $file[$l]);
-				$this->data["code"][$l + 1] = $file[$l];
+				$crashData["code"][$l + 1] = $file[$l];
+			}
+		}
+
+
+		return $crashData;
+	}
+
+	private function pluginsData() : array{
+		$plugins = [];
+		if($this->server->getPluginManager() instanceof PluginManager){
+			foreach($this->server->getPluginManager()->getPlugins() as $p){
+				$d = $p->getDescription();
+				$plugins[$d->getName()] = [
+					"name" => $d->getName(),
+					"version" => $d->getVersion(),
+					"authors" => $d->getAuthors(),
+					"api" => $d->getCompatibleApis(),
+					"enabled" => $p->isEnabled(),
+					"depends" => $d->getDepend(),
+					"softDepends" => $d->getSoftDepend(),
+					"main" => $d->getMain(),
+					"load" => $d->getOrder() === PluginLoadOrder::POSTWORLD ? "POSTWORLD" : "STARTUP",
+					"website" => $d->getWebsite()
+				];
+			}
+		}
+
+		return $plugins;
+	}
+
+	private function configData() : array{
+		global $argv;
+		$config = [
+			"pocketmine.yml" => "",
+			"server.properties" => "",
+			"parameters" => []
+		];
+
+		if($this->server->getProperty("auto-report.send-settings", true) !== false){
+			$config["parameters"] = (array) $argv;
+			$config["server.properties"] = preg_replace(
+				"#^rcon\\.password=(.*)$#m",
+				"rcon.password=******",
+				@file_get_contents($this->server->getDataPath() . "server.properties")
+			);
+			$config["pocketmine.yml"] = @file_get_contents($this->server->getDataPath() . "pocketmine.yml");
+		}
+
+		return $config;
+	}
+
+	private function phpData() : array{
+		$phpData = [
+			"php" => phpversion(),
+			"zend" => zend_version()
+		];
+		$extensions = [];
+		foreach(get_loaded_extensions() as $ext){
+			$extensions[$ext] = phpversion($ext);
+		}
+		$phpData["extensions"] = $extensions;
+
+
+		if($this->server->getProperty("auto-report.send-phpinfo", true) !== false){
+			ob_start();
+			phpinfo();
+			$phpData["phpinfo"] = ob_get_contents();
+			ob_end_clean();
+		}
+
+		return $phpData;
+	}
+
+	/**
+	 * Returns data encoded for submission to the crash archive API.
+	 *
+	 * @return string
+	 */
+	public function getEncodedData() : string{
+		return zlib_encode(json_encode($this->data, JSON_UNESCAPED_SLASHES), ZLIB_ENCODING_DEFLATE, 9);
+	}
+
+	public function getData() : array{
+		return $this->data;
+	}
+
+	public function getTime() : int{
+		return $this->time;
+	}
+
+	/**
+	 * @param resource $fp Stream to emit data to
+	 * @param bool     $fullData
+	 *
+	 * @throws \InvalidArgumentException
+	 */
+	public function write($fp, bool $fullData) : void{
+		$this->fp = $fp;
+
+		$this->addLine(\pocketmine\NAME . " Crash Dump " . date("D M j H:i:s T Y", $this->time));
+		$this->addLine();
+
+		$crashData = $this->data["crash"];
+
+		$this->addLine("Error: " . $crashData["message"]);
+		$this->addLine("File: " . $crashData["file"]);
+		$this->addLine("Line: " . $crashData["line"]);
+		$this->addLine("Type: " . $crashData["type"]);
+
+		/** @var string|bool $pl */
+		if(($pl = $crashData["plugin"]) !== false){
+			$this->addLine();
+			$this->addLine("THIS CRASH WAS CAUSED BY A PLUGIN");
+
+			if(is_string($pl)){ //will just be bool(true) if plugin was unidentified
+				$this->addLine("BAD PLUGIN: $pl");
+			}
+		}
+
+		/** @var string[] $code */
+		if(!empty($code = $crashData["code"])){
+			$this->addLine();
+			$this->addLine("Code:");
+			foreach($code as $l => $text){
+				$this->addLine("[$l] $text");
 			}
 		}
 
 		$this->addLine();
 		$this->addLine("Backtrace:");
-		foreach(($this->data["trace"] = $error["trace"]) as $line){
-			$this->addLine($line);
+		foreach($backtrace = $crashData["trace"] as $frame){
+			$this->addLine($frame);
 		}
 		$this->addLine();
-	}
 
-	private function generalData(){
 		$version = new VersionString(\pocketmine\BASE_VERSION, \pocketmine\IS_DEVELOPMENT_BUILD, \pocketmine\BUILD_NUMBER);
-		$this->data["general"] = [];
-		$this->data["general"]["name"] = $this->server->getName();
-		$this->data["general"]["version"] = $version->getFullVersion(false);
-		$this->data["general"]["build"] = $version->getBuild();
-		$this->data["general"]["protocol"] = ProtocolInfo::CURRENT_PROTOCOL;
-		$this->data["general"]["api"] = \pocketmine\BASE_VERSION;
-		$this->data["general"]["git"] = \pocketmine\GIT_COMMIT;
-		$this->data["general"]["raklib"] = RakLib::VERSION;
-		$this->data["general"]["uname"] = php_uname("a");
-		$this->data["general"]["php"] = phpversion();
-		$this->data["general"]["zend"] = zend_version();
-		$this->data["general"]["php_os"] = PHP_OS;
-		$this->data["general"]["os"] = Utils::getOS();
 		$this->addLine($this->server->getName() . " version: " . $version->getFullVersion(true) . " [Protocol " . ProtocolInfo::CURRENT_PROTOCOL . "]");
 		$this->addLine("Git commit: " . GIT_COMMIT);
 		$this->addLine("uname -a: " . php_uname("a"));
 		$this->addLine("PHP Version: " . phpversion());
 		$this->addLine("Zend version: " . zend_version());
 		$this->addLine("OS : " . PHP_OS . ", " . Utils::getOS());
+
+		$this->addLine();
+		$this->addLine("Loaded plugins:");
+
+		foreach($this->data["plugins"] as $p){
+			$this->addLine($p["name"] . " " . $p["version"] . " by " . implode(", ", $p["authors"]) . " for API(s) " . implode(", ", $p["api"]));
+		}
+
+		if($fullData){
+			$this->addLine();
+			$this->addLine("----------------------REPORT THE DATA BELOW THIS LINE-----------------------");
+			$this->addLine();
+			$this->addLine("===BEGIN CRASH DUMP===");
+
+			foreach(str_split(
+						base64_encode(
+							zlib_encode(
+								json_encode($this->data, JSON_UNESCAPED_SLASHES),
+								ZLIB_ENCODING_DEFLATE,
+								9
+							)
+						),
+						76) as $line){
+				$this->addLine($line);
+			}
+			$this->addLine("===END CRASH DUMP===");
+		}
 	}
 
-	public function addLine($line = ""){
+	private function addLine(string $line = "") : void{
 		fwrite($this->fp, $line . PHP_EOL);
-	}
-
-	public function add($str){
-		fwrite($this->fp, $str);
 	}
 }

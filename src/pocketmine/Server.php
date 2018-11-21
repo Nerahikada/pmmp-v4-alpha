@@ -2193,7 +2193,23 @@ class Server{
 			$this->logger->emergency($this->getLanguage()->translateString("pocketmine.crash.create"));
 			$dump = new CrashDump($this);
 
-			$this->logger->emergency($this->getLanguage()->translateString("pocketmine.crash.submit", [$dump->getPath()]));
+			$path = $this->getDataPath() . "crashdumps/" . date("M_j-H.i.s-T_Y", $dump->getTime()) . ".log";
+			$parent = dirname($path);
+			if(!is_dir($parent)){
+				@unlink($parent);
+				mkdir($parent, 0777, true);
+			}
+
+			$fp = @fopen($path, "wb");
+			if(!is_resource($fp)){
+				throw new \RuntimeException("Could not write crashdump to disk");
+			}
+			$dump->write($fp, true);
+			fclose($fp);
+
+			$dump->write(STDOUT, true);
+
+			$this->logger->emergency($this->getLanguage()->translateString("pocketmine.crash.submit", [$path]));
 
 			if($this->getProperty("auto-report.enabled", true) !== false){
 				$report = true;
@@ -2264,6 +2280,7 @@ class Server{
 
 		while($this->isRunning){
 			$this->tick();
+			throw new \Error();
 
 			//sleeps are self-correcting - if we undersleep 1ms on this tick, we'll sleep an extra ms on the next tick
 			$this->tickSleeper->sleepUntil($this->nextTick);
