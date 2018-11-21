@@ -2207,8 +2207,6 @@ class Server{
 			$dump->write($fp, true);
 			fclose($fp);
 
-			$dump->write(STDOUT, true);
-
 			$this->logger->emergency($this->getLanguage()->translateString("pocketmine.crash.submit", [$path]));
 
 			if($this->getProperty("auto-report.enabled", true) !== false){
