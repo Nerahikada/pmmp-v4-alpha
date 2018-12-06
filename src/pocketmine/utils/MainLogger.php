@@ -172,9 +172,21 @@ class MainLogger extends \AttachableThreadedLogger{
 	/**
 	 * @param \Throwable $e
 	 * @param array|null $trace
-	 * @param bool       $induced
 	 */
-	public function logException(\Throwable $e, $trace = null, bool $induced = false){
+	public function logException(\Throwable $e, $trace = null){
+		$generator = $this->logExceptionMessages($e, $trace, false);
+		$messages = iterator_to_array($generator, false);
+
+		$this->synchronized(function() use ($messages) : void{
+			foreach($messages as [$type, $message]){
+				$this->log($type, $message, true);
+			}
+		});
+
+		$this->syncFlushBuffer();
+	}
+
+	private function logExceptionMessages(\Throwable $e, $trace, bool $induced) : \Generator{
 		if($trace === null){
 			$trace = $e->getTrace();
 		}
@@ -210,28 +222,20 @@ class MainLogger extends \AttachableThreadedLogger{
 		$errstr = preg_replace('/\s+/', ' ', trim($errstr));
 		$errfile = Utils::cleanPath($errfile);
 
-		$message = "";
-		if($induced){
-			$message .= "Caused by: ";
-		}
+		$message = $induced ? "Caused by: " : "";
 		$message .= get_class($e) . ": \"$errstr\" ($errno) in \"$errfile\" at line $errline";
+		yield [$type, $message];
 		$stack = Utils::getTrace(0, $trace);
-
-		$this->synchronized(function() use ($type, $message, $stack) : void{
-			$this->log($type, $message);
-			foreach($stack as $line){
-				$this->debug($line, true);
-			}
-		});
+		foreach($stack as $line){
+			yield [LogLevel::DEBUG, $line];
+		}
 
 		if($e->getPrevious() !== null){
-			$this->logException($e->getPrevious(), null, true);
+			yield from $this->logExceptionMessages($e->getPrevious(), null, true);
 		}
-
-		$this->syncFlushBuffer();
 	}
 
-	public function log($level, $message){
+	public function log($level, $message, bool $force = false){
 		switch($level){
 			case LogLevel::EMERGENCY:
 				$this->emergency($message);
@@ -255,7 +259,7 @@ class MainLogger extends \AttachableThreadedLogger{
 				$this->info($message);
 				break;
 			case LogLevel::DEBUG:
-				$this->debug($message);
+				$this->debug($message, $force);
 				break;
 		}
 	}
