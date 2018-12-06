@@ -174,11 +174,10 @@ class MainLogger extends \AttachableThreadedLogger{
 	 * @param array|null $trace
 	 */
 	public function logException(\Throwable $e, $trace = null){
-		$generator = $this->logExceptionMessages($e, $trace, false);
-		$messages = iterator_to_array($generator, false);
+		$messages = $this->logExceptionMessages($e, $trace, false);
 
 		$this->synchronized(function() use ($messages) : void{
-			foreach($messages as [$type, $message]){
+			foreach($messages as $type => $message){
 				$this->log($type, $message, true);
 			}
 		});
@@ -224,10 +223,10 @@ class MainLogger extends \AttachableThreadedLogger{
 
 		$message = $induced ? "Caused by: " : "";
 		$message .= get_class($e) . ": \"$errstr\" ($errno) in \"$errfile\" at line $errline";
-		yield [$type, $message];
+		yield $type => $message;
 		$stack = Utils::getTrace(0, $trace);
 		foreach($stack as $line){
-			yield [LogLevel::DEBUG, $line];
+			yield LogLevel::DEBUG => $line;
 		}
 
 		if($e->getPrevious() !== null){
