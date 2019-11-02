@@ -76,7 +76,7 @@ class CraftingManager{
 						array_map($itemDeserializerFunc, $recipe["output"])
 					));
 					break;
-				case 2:
+				case 3:
 				case "smelting":
 					if($recipe["block"] !== "furnace"){ //TODO: filter others out for now to avoid breaking economics
 						break;
