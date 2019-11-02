@@ -1127,8 +1127,8 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	protected function sendRespawnPacket(Vector3 $pos){
 		$pk = new RespawnPacket();
 		$pk->position = $pos->add(0, $this->baseOffset, 0);
-		$pk->respawnState = RespawnPacket::STATE_SEARCHING_FOR_SPAWN;
-		$pk->runtimeEntityId = $this->id;
+        $pk->respawnState = RespawnPacket::STATE_SEARCHING_FOR_SPAWN;
+        $pk->runtimeEntityId = $this->id;
 
 		$this->dataPacket($pk);
 	}
@@ -2022,17 +2022,17 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	}
 
 	public function handleRespawn(RespawnPacket $packet): bool
-	{
-		if(!$this->isAlive() && $packet->respawnState === RespawnPacket::STATE_CLIENT_READY_TO_SPAWN){
-			$packet = new RespawnPacket();
-			$packet->position = $this->asVector3();
-			$packet->respawnState = RespawnPacket::STATE_READY_TO_SPAWN;
-			$packet->runtimeEntityId = $this->id;
-			$this->dataPacket($packet);
-		}
+    {
+        if(!$this->isAlive() && $packet->respawnState === RespawnPacket::STATE_CLIENT_READY_TO_SPAWN){
+            $packet = new RespawnPacket();
+            $packet->position = $this->asVector3();
+            $packet->respawnState = RespawnPacket::STATE_READY_TO_SPAWN;
+            $packet->runtimeEntityId = $this->id;
+            $this->dataPacket($packet);
+        }
 
-		return true;
-	}
+        return true;
+    }
 
 	public function sendPlayStatus(int $status, bool $immediate = false){
 		$pk = new PlayStatusPacket();
@@ -2600,19 +2600,17 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 								$this->inventory->setItemInHand($item);
 							}
 
-							if($this->startAction === -1){
-								$this->setUsingItem(true);
-								return true;
-							}
+                            if($this->startAction === -1){
+                                $this->setUsingItem(true);
+                                return true;
+                            }
 
-							$ticksUsed = $this->server->getTick() - $this->startAction;
-							$this->setUsingItem(false);
-							$pk = new CompletedUsingItemPacket();
-							$pk->itemId = $item->getId();
-							$pk->action = $item->completeAction($this, $ticksUsed);
-							$this->dataPacket($pk);
-						}else{
-							$this->setUsingItem(true);
+                            $ticksUsed = $this->server->getTick() - $this->startAction;
+                            $this->setUsingItem(false);
+                            $pk = new CompletedUsingItemPacket();
+                            $pk->itemId = $item->getId();
+                            $pk->action = $item->completeAction($this, $ticksUsed);
+                            $this->dataPacket($pk);
 						}
 
 						return true;
