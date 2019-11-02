@@ -25,7 +25,6 @@ namespace pocketmine\inventory;
 
 use pocketmine\item\Item;
 use pocketmine\Player;
-use function array_map;
 
 class PlayerUIComponent extends BaseInventory{
 
@@ -76,9 +75,16 @@ class PlayerUIComponent extends BaseInventory{
     }
 
     public function getContents(bool $includeEmpty = false) : array{
-        return array_map(function(int $slot) : bool{
-            return $slot > $this->offset && $slot < $this->offset + $this->size;
-            }, $this->playerUI->getContents());
+        $contents = [];
+
+        foreach($this->slots as $i => $slot){
+            if($slot === null || $i < $this->offset || $i > $this->offset + $this->size){
+                continue;
+            }
+            $contents[$i] = clone $slot;
+        }
+
+        return $contents;
     }
 
     public function sendContents($target) : void{
