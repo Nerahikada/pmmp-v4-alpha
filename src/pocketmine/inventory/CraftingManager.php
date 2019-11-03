@@ -82,8 +82,8 @@ class CraftingManager{
 						break;
 					}
 					$this->registerRecipe(new FurnaceRecipe(
-						Item::jsonDeserialize($recipe["output"]),
-						Item::jsonDeserialize($recipe["input"]))
+							Item::jsonDeserialize($recipe["output"]),
+							Item::jsonDeserialize($recipe["input"]))
 					);
 					break;
 				default:
@@ -241,7 +241,7 @@ class CraftingManager{
 
 	/**
 	 * @param CraftingGrid $grid
-	 * @param Item[]       $outputs
+	 * @param Item[] $outputs
 	 *
 	 * @return CraftingRecipe|null
 	 */
