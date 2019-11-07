@@ -199,6 +199,7 @@ class InventoryTransaction{
 				$slotChanges[$h = (spl_object_hash($action->getInventory()) . "@" . $action->getSlot())][] = $action;
 				$inventories[$h] = $action->getInventory();
 				$slots[$h] = $action->getSlot();
+				$fakes[$h] = $action->getFake();
 			}
 		}
 
@@ -225,7 +226,11 @@ class InventoryTransaction{
 
 			if(!$targetItem->equalsExact($sourceItem)){
 				//sometimes we get actions on the crafting grid whose source and target items are the same, so dump them
-				$this->addAction(new SlotChangeAction($inventory, $slot, $sourceItem, $targetItem));
+				$act = new SlotChangeAction($inventory, $slot, $sourceItem, $targetItem);
+				if($fakes[$hash]){
+					$act->setFake();
+				}
+				$this->addAction($act);
 			}
 		}
 	}
