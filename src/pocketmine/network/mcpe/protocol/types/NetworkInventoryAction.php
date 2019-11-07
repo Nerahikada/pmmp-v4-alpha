@@ -211,6 +211,7 @@ class NetworkInventoryAction{
 					case self::SOURCE_TYPE_ENCHANT_OUTPUT:
 						//$player->getWindow($this->windowId);
 						$sca = new SlotChangeAction($player->getCraftingGrid(), $this->inventorySlot, $this->oldItem, $this->newItem);
+						$sca->setFake();
 						return $sca;
 				}
 

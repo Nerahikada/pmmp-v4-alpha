@@ -35,6 +35,8 @@ abstract class InventoryAction{
 	protected $sourceItem;
 	/** @var Item */
 	protected $targetItem;
+	/** @var Fake */
+	protected $fake = false;
 
 	public function __construct(Item $sourceItem, Item $targetItem){
 		$this->sourceItem = $sourceItem;
@@ -73,6 +75,21 @@ abstract class InventoryAction{
 	 */
 	public function onAddToTransaction(InventoryTransaction $transaction) : void{
 
+	}
+
+	/**
+	 * @param bool $isfake
+	 */
+	public function setFake(bool $isfake = true) : void{
+		$this->fake = $isfake;
+	}
+
+	/**
+	 *
+	 * @return bool
+	 */
+	public function isFake() : bool{
+		return $this->fake;
 	}
 
 	/**
