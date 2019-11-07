@@ -72,7 +72,7 @@ class EnchantingTable extends Transparent{
 			//TODO lock
 
 			$player->setCraftingGrid($player->getPlayerUIInventory()->getCraftingGrid(CraftingGrid::SIZE_ENCHANT));
-			//$player->addWindow(new EnchantInventory($this));
+			$player->addWindow(new EnchantInventory($this, $player));
 		}
 
 		return true;

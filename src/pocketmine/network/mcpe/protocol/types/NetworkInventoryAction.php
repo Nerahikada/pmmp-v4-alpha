@@ -210,7 +210,8 @@ class NetworkInventoryAction{
 					case self::SOURCE_TYPE_ENCHANT_MATERIAL:
 					case self::SOURCE_TYPE_ENCHANT_OUTPUT:
 						//$player->getWindow($this->windowId);
-						return new SlotChangeAction($player->getCraftingGrid(), $this->inventorySlot, $this->oldItem, $this->newItem);
+						$sca = new SlotChangeAction($player->getCraftingGrid(), $this->inventorySlot, $this->oldItem, $this->newItem);
+						return $sca;
 				}
 
 				//TODO: more stuff
