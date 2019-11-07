@@ -199,7 +199,7 @@ class InventoryTransaction{
 				$slotChanges[$h = (spl_object_hash($action->getInventory()) . "@" . $action->getSlot())][] = $action;
 				$inventories[$h] = $action->getInventory();
 				$slots[$h] = $action->getSlot();
-				$fakes[$h] = $action->getFake();
+				$fakes[$h] = $action->isFake();
 			}
 		}
 
