@@ -45,6 +45,7 @@ class PlayerUIInventory extends BaseInventory{
 		$this->cursorInventory = new PlayerCursorInventory($this);
 		$this->craftingGrid = new CraftingGrid($this, CraftingGrid::OFFSET_SMALL, CraftingGrid::SIZE_SMALL);
 		$this->bigCraftingGrid = new CraftingGrid($this, CraftingGrid::OFFSET_BIG, CraftingGrid::SIZE_BIG);
+		$this->enchantCraftingGrid = new CraftingGrid($this, CraftingGrid::OFFSET_ENCHANT, CraftingGrid::SIZE_ENCHANT);
 		parent::__construct();
 	}
 
@@ -65,8 +66,11 @@ class PlayerUIInventory extends BaseInventory{
 	}
 
 	public function getCraftingGrid(int $size = CraftingGrid::SIZE_SMALL) : CraftingGrid{
-		if($size > CraftingGrid::SIZE_SMALL){
-			return $this->bigCraftingGrid;
+		switch ($size) {
+			case CraftingGrid::SIZE_BIG:
+				return $this->bigCraftingGrid;
+			case CraftingGrid::SIZE_ENCHANT:
+				return $this->enchantCraftingGrid;
 		}
 		return $this->craftingGrid;
 	}

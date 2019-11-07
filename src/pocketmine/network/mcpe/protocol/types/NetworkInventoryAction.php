@@ -206,8 +206,8 @@ class NetworkInventoryAction{
 					case self::SOURCE_TYPE_CRAFTING_RESULT:
 					case self::SOURCE_TYPE_CRAFTING_USE_INGREDIENT:
 						return null;
-					//case self::SOURCE_TYPE_ENCHANT_INPUT:
-					//case self::SOURCE_TYPE_ENCHANT_MATERIAL:
+					case self::SOURCE_TYPE_ENCHANT_INPUT:
+					case self::SOURCE_TYPE_ENCHANT_MATERIAL:
 					case self::SOURCE_TYPE_ENCHANT_OUTPUT:
 						//$player->getWindow($this->windowId);
 						return new SlotChangeAction($player->getCraftingGrid(), $this->inventorySlot, $this->oldItem, $this->newItem);

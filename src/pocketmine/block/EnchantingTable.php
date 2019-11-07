@@ -23,7 +23,7 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
-use pocketmine\inventory\EnchantInventory;
+use pocketmine\inventory\CraftingGrid;
 use pocketmine\item\Item;
 use pocketmine\item\TieredTool;
 use pocketmine\math\Vector3;
@@ -71,7 +71,8 @@ class EnchantingTable extends Transparent{
 		if($player instanceof Player){
 			//TODO lock
 
-			$player->addWindow(new EnchantInventory($this));
+			$player->setCraftingGrid($player->getPlayerUIInventory()->getCraftingGrid(CraftingGrid::SIZE_ENCHANT));
+			//$player->addWindow(new EnchantInventory($this));
 		}
 
 		return true;

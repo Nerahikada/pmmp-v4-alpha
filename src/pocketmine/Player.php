@@ -3916,7 +3916,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 		$this->uiInventory->clearAll();
 
-		if($this->craftingGrid->getSize() > CraftingGrid::SIZE_SMALL){
+		if($this->craftingGrid->getSize() !== CraftingGrid::SIZE_SMALL){
 			$this->craftingGrid = $this->uiInventory->getCraftingGrid();
 		}
 	}
