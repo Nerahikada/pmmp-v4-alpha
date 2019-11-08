@@ -145,6 +145,7 @@ use pocketmine\network\mcpe\protocol\types\CommandEnum;
 use pocketmine\network\mcpe\protocol\types\CommandParameter;
 use pocketmine\network\mcpe\protocol\types\ContainerIds;
 use pocketmine\network\mcpe\protocol\types\DimensionIds;
+use pocketmine\network\mcpe\protocol\types\NetworkInventoryAction;
 use pocketmine\network\mcpe\protocol\types\PlayerPermissions;
 use pocketmine\network\mcpe\protocol\UpdateAttributesPacket;
 use pocketmine\network\mcpe\protocol\UpdateBlockPacket;
@@ -296,6 +297,8 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	protected $craftingGrid = null;
 	/** @var CraftingTransaction|null */
 	protected $craftingTransaction = null;
+	/** @var Inventory */
+	protected $lastWindow = null;
 
 	/** @var int */
 	protected $messageCounter = 2;
@@ -2373,6 +2376,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->doCloseInventory();
 
 		switch($packet->event){
+			case ActorEventPacket::PLAYER_ADD_XP_LEVELS:
 			case ActorEventPacket::EATING_ITEM:
 				if($packet->data === 0){
 					return false;
@@ -3901,6 +3905,12 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->craftingGrid = $grid;
 	}
 
+	public function EnchantPacket(NetworkInventoryAction $action) {
+		if($action->newItem->getId() !== 0){
+			$this->lastWindow->setItem($action->inventorySlot - 14, $action->newItem);
+		}
+	}
+
 	public function doCloseInventory() : void{
 		/** @var Inventory[] $inventories */
 		$inventories = [$this->craftingGrid, $this->getCursorInventory()];
@@ -3945,6 +3955,16 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	}
 
 	/**
+	 * Returns the inventory window open to the player with the last window ID, or null if no window is open with
+	 * that ID.
+	 *
+	 * @return Inventory|null
+	 */
+	public function getLastWindow(){
+		return $this->lastWindow ?? null;
+	}
+
+	/**
 	 * Opens an inventory window to the player. Returns the ID of the created window, or the existing window ID if the
 	 * player is already viewing the specified inventory.
 	 *
@@ -3958,6 +3978,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	 * @throws \InvalidStateException if trying to add a window without forceID when no slots are free
 	 */
 	public function addWindow(Inventory $inventory, int $forceId = null, bool $isPermanent = false) : int{
+		$this->lastWindow = $inventory;
 		if(($id = $this->getWindowId($inventory)) !== ContainerIds::NONE){
 			return $id;
 		}
@@ -4001,6 +4022,9 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	 * @throws \InvalidArgumentException if trying to remove a fixed inventory window without the `force` parameter as true
 	 */
 	public function removeWindow(Inventory $inventory, bool $force = false){
+		if($this->lastWindow === $inventory){
+			$this->lastWindow = null;
+		}
 		$id = $this->windows[$hash = spl_object_hash($inventory)] ?? null;
 
 		if($id !== null and !$force and isset($this->permanentWindows[$id])){

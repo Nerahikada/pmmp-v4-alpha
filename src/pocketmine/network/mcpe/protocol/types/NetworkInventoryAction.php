@@ -29,6 +29,7 @@ use pocketmine\inventory\transaction\action\InventoryAction;
 use pocketmine\inventory\transaction\action\SlotChangeAction;
 use pocketmine\item\Item;
 use pocketmine\network\mcpe\protocol\InventoryTransactionPacket;
+use pocketmine\network\mcpe\protocol\types\ContainerIds;
 use pocketmine\Player;
 
 class NetworkInventoryAction{
@@ -169,6 +170,15 @@ class NetworkInventoryAction{
 	public function createInventoryAction(Player $player){
 		switch($this->sourceType){
 			case self::SOURCE_CONTAINER:
+				if($this->windowId === ContainerIds::UI){
+					if($this->inventorySlot === 14 || $this->inventorySlot === 15){
+						$player->EnchantPacket($this);
+						$window = $player->getLastWindow();
+						if($window !== null){
+							return new SlotChangeAction($window, $this->inventorySlot, $this->oldItem, $this->newItem);
+						}
+					}
+				}
 				$window = $player->getWindow($this->windowId);
 				if($window !== null){
 					return new SlotChangeAction($window, $this->inventorySlot, $this->oldItem, $this->newItem);
