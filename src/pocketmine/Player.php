@@ -361,8 +361,11 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	protected $autoJump = true;
 	/** @var bool */
 	protected $allowFlight = false;
+	protected $E_allowFlight = false;
 	/** @var bool */
 	protected $flying = false;
+	/** @var bool */
+	protected $usingElytra = false;
 
 	/** @var PermissibleBase */
 	private $perm = null;
@@ -487,7 +490,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	}
 
 	public function setAllowFlight(bool $value){
-		$this->allowFlight = $value;
+		$this->E_allowFlight = $this->allowFlight = $value;
 		$this->sendSettings();
 	}
 
@@ -1750,6 +1753,14 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 	}
 
+	public function checkElytra() : bool{
+		return ($this->getArmorInventory()->getChestplate() instanceof \pocketmine\item\Elytra);
+	}
+
+	public function isUsingElytra() : bool{
+		return $this->usingElytra;
+	}
+
 	public function sendAttributes(bool $sendAll = false){
 		$entries = $sendAll ? $this->attributeMap->getAll() : $this->attributeMap->needSend();
 		if(count($entries) > 0){
@@ -2925,7 +2936,18 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 				$this->toggleSneak(false);
 				return true;
 			case PlayerActionPacket::ACTION_START_GLIDE:
+				if($this->checkElytra()){
+					$this->E_allowFlight = $this->allowFlight;
+					$this->usingElytra = $this->allowFligh = true;
+					$this->sendSettings();
+				}
+				break;
 			case PlayerActionPacket::ACTION_STOP_GLIDE:
+				if($this->usingElytra){
+					$this->allowFlight = $this->E_allowFlight;
+					$this->usingElytra = $this->allowFligh = true;
+					$this->sendSettings();
+				}
 				break; //TODO
 			case PlayerActionPacket::ACTION_CONTINUE_BREAK:
 				$block = $this->level->getBlock($pos);
