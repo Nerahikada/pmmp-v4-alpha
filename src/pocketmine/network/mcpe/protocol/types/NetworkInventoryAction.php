@@ -175,7 +175,7 @@ class NetworkInventoryAction{
 						$player->EnchantPacket($this);
 						$window = $player->getLastWindow();
 						if($window !== null){
-							return new SlotChangeAction($window, $this->inventorySlot, $this->oldItem, $this->newItem);
+							return new SlotChangeAction($window, $this->inventorySlot - 14, $this->oldItem, $this->newItem);
 						}
 					}
 				}
