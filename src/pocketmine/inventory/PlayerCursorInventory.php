@@ -25,7 +25,14 @@ namespace pocketmine\inventory;
 
 class PlayerCursorInventory extends PlayerUIComponent{
 
+	protected $playerUI;
+
 	public function __construct(PlayerUIInventory $playerUI){
 		parent::__construct($playerUI, 0, 1);
+		$this->playerUI = $playerUI;
+	}
+
+	public function getHolder() {
+		return $this->playerUI->getHolder();
 	}
 }

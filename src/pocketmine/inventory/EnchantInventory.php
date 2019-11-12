@@ -27,16 +27,15 @@ use pocketmine\level\Position;
 use pocketmine\network\mcpe\protocol\types\WindowTypes;
 use pocketmine\Player;
 
-class EnchantInventory extends ContainerInventory{
+class EnchantInventory extends FakeBlockUIComponent{
 
 	/** @var Position */
 	protected $holder;
 	/** @var Player */
 	protected $player;
 
-	public function __construct(Position $pos, Player $who){
-		parent::__construct($pos->asPosition());
-		$this->player = $who;
+	public function __construct(PlayerUIInventory $UIInventory, Position $pos){
+		parent::__construct($UIInventory, FakeBlockUIComponent::ENCHANT_TABLE, 14, $pos->asPosition());
 	}
 
 	public function getNetworkType() : int{

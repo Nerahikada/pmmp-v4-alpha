@@ -105,10 +105,6 @@ class PlayerUIComponent extends BaseInventory{
 		return $this->playerUI->viewers;
 	}
 
-	public function getHolder() : Player{
-		return $this->playerUI->getHolder();
-	}
-
 	public function onOpen(Player $who) : void{
 
 	}
