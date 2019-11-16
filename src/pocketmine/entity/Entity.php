@@ -323,6 +323,9 @@ abstract class Entity extends Location implements Metadatable, EntityIds{
 	/** @var string[][] */
 	private static $saveNames = [];
 
+	/** */
+	private $customVar = [];
+
 	/**
 	 * Called on server startup to register default entity types.
 	 */
@@ -2269,6 +2272,8 @@ abstract class Entity extends Location implements Metadatable, EntityIds{
 	public function __get($name){
 		if($name === "fireTicks"){
 			return $this->fireTicks;
+		}else if(isset($this->customVar[$name])){
+			return $this->customVar[$name];
 		}
 		throw new \ErrorException("Undefined property: " . get_class($this) . "::\$" . $name);
 	}
@@ -2286,7 +2291,7 @@ abstract class Entity extends Location implements Metadatable, EntityIds{
 		if($name === "fireTicks"){
 			$this->setFireTicks($value);
 		}else{
-			throw new \ErrorException("Undefined property: " . get_class($this) . "::\$" . $name);
+			$this->customVar[$name] = $value;
 		}
 	}
 
@@ -2298,6 +2303,10 @@ abstract class Entity extends Location implements Metadatable, EntityIds{
 	 * @return bool
 	 */
 	public function __isset($name){
-		return $name === "fireTicks";
+		if($name === "fireTicks"){
+			return true;
+		}else{
+			return isset($this->customVar[$name]);
+		}
 	}
 }
