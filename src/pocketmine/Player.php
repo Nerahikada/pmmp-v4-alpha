@@ -2935,16 +2935,14 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 				return true;
 			case PlayerActionPacket::ACTION_START_GLIDE:
 				if($this->checkElytra()){
-					$this->E_allowFlight = $this->allowFlight;
-					$this->usingElytra = $this->allowFlight = true;
-					$this->sendSettings();
+					$this->usingElytra = true;
+					//$this->sendSettings();
 				}
 				break;
 			case PlayerActionPacket::ACTION_STOP_GLIDE:
 				if($this->usingElytra){
-					$this->allowFlight = $this->E_allowFlight;
-					$this->usingElytra = $this->allowFlight = true;
-					$this->sendSettings();
+					$this->usingElytra = true;
+					//$this->sendSettings();
 				}
 				break; //TODO
 			case PlayerActionPacket::ACTION_CONTINUE_BREAK:
