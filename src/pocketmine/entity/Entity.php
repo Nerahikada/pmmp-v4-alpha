@@ -2275,6 +2275,7 @@ abstract class Entity extends Location implements Metadatable, EntityIds{
 		}else if(isset($this->customVar[$name])){
 			return $this->customVar[$name];
 		}
+		return null;
 		throw new \ErrorException("Undefined property: " . get_class($this) . "::\$" . $name);
 	}
 
